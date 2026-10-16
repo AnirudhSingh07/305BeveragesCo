@@ -81,6 +81,7 @@ export function PosClient({
   const [custPhone, setCustPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [review, setReview] = useState(false);
   const [confirmed, setConfirmed] = useState<ReceiptData | null>(null);
 
   const discountValuePaise =
@@ -193,6 +194,7 @@ export function PosClient({
           line_total: l.price * l.quantity,
         })),
       };
+      setReview(false);
       setConfirmed(receipt);
       toast(`Order ${order.order_number} saved`, "success");
       resetOrder();
@@ -452,17 +454,103 @@ export function PosClient({
             size="lg"
             className="w-full"
             disabled={submitting || cart.length === 0}
-            onClick={completeOrder}
+            onClick={() => {
+              if (cart.length === 0) {
+                toast("Add at least one item to the cart.", "error");
+                return;
+              }
+              setReview(true);
+            }}
           >
-            {submitting ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-5 w-5" />
-            )}
-            Complete Order · {formatINR(totals.total)}
+            <CheckCircle2 className="h-5 w-5" />
+            Review &amp; Complete · {formatINR(totals.total)}
           </Button>
         </div>
       </Card>
+
+      {/* Review before saving */}
+      <Dialog open={review} onOpenChange={(o) => !o && setReview(false)}>
+        <DialogContent className="max-w-md">
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Review order</h2>
+            <p className="text-sm text-muted-foreground">
+              Check the items and payment before saving.
+            </p>
+          </div>
+
+          <div className="max-h-[45vh] space-y-1.5 overflow-y-auto rounded-lg border p-3 text-sm">
+            {cart.map((l) => (
+              <div key={l.productId} className="flex justify-between gap-2">
+                <span className="min-w-0 truncate">
+                  {l.name} <span className="text-muted-foreground">× {l.quantity}</span>
+                </span>
+                <span className="tnum shrink-0">{formatINR(l.price * l.quantity)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="tnum">{formatINR(totals.subtotal)}</span>
+            </div>
+            {totals.discount > 0 && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Discount</span>
+                <span className="tnum">-{formatINR(totals.discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-base font-semibold">
+              <span>Total</span>
+              <span className="tnum">{formatINR(totals.total)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Payment</span>
+              <span className="uppercase">{method}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Amount paid</span>
+              <span className="tnum">{formatINR(amountPaidPaise)}</span>
+            </div>
+            {amountPaidPaise < totals.total && (
+              <div className="flex justify-between font-medium text-amber-600 dark:text-amber-400">
+                <span>Balance due</span>
+                <span className="tnum">{formatINR(totals.total - amountPaidPaise)}</span>
+              </div>
+            )}
+            {custName.trim() && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Customer</span>
+                <span className="truncate">{custName.trim()}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled={submitting}
+              onClick={() => setReview(false)}
+            >
+              Back &amp; edit
+            </Button>
+            <Button
+              variant="accent"
+              className="flex-1"
+              disabled={submitting}
+              onClick={completeOrder}
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5" />
+              )}
+              Confirm &amp; save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation */}
       <Dialog open={!!confirmed} onOpenChange={(o) => !o && setConfirmed(null)}>

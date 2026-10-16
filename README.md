@@ -81,6 +81,7 @@ The schema, RLS policies, transactional functions, and idempotent seed live in
 | `0001_init.sql` | Tables, indexes, RLS, `seed_business()`, `ensure_business()` |
 | `0002_order_functions.sql` | `create_order`, `record_payment`, `refund_order`, `cancel_order` |
 | `0003_closing.sql` | `record_daily_closing` |
+| `0004_delete_order.sql` | `delete_order` (permanent delete of a mistaken order, audit-logged) |
 
 **Apply them (easiest — SQL editor):**
 
@@ -120,14 +121,16 @@ by `import "server-only"` so it can never be bundled into client code.
 
 - **New Order / POS** — category tabs + search, click-to-add, quantity ±,
   order-level % or ₹ discount, payment method, full/partial/unpaid, optional
-  customer & notes, duplicate-submission protection, printable receipt.
+  customer & notes, a **review-before-save** confirmation step, duplicate-submission
+  protection, printable receipt.
 - **Dashboard** — KPIs (gross/net sales, orders, AOV, items, expenses, est.
   profit, outstanding) and 8 charts, all driven by real records and the date
   range (Today / Yesterday / 7d / 30d / This Month / Custom).
 - **Orders** — search by order no. or product; filter by date, category,
   payment method, payment status, order status; sort; detail view with itemised
   bill, price/cost snapshots, payments, refunds, notes; refund / cancel / record
-  payment / reprint receipt.
+  payment / reprint receipt / **permanently delete** a mistaken order (distinct
+  from cancel — a true, audit-logged removal).
 - **Menu Management** — add/edit products, price, **unit cost (COGS)**, category,
   availability, add/edit categories, search & sort (incl. popularity).
 - **Expenses** — full CRUD (soft-delete with audit), default categories,

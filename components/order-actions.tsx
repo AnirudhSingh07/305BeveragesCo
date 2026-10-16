@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { Receipt, type ReceiptData } from "@/components/receipt";
-import { Printer, IndianRupee, Undo2, Ban, Loader2 } from "lucide-react";
+import { Printer, IndianRupee, Undo2, Ban, Trash2, Loader2 } from "lucide-react";
 
 export function OrderActions({
   order,
@@ -42,7 +42,7 @@ export function OrderActions({
   const { toast } = useToast();
   const supabase = useMemo(() => createClient(), []);
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<null | "pay" | "refund" | "cancel" | "receipt">(null);
+  const [dialog, setDialog] = useState<null | "pay" | "refund" | "cancel" | "delete" | "receipt">(null);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [reason, setReason] = useState("");
@@ -85,6 +85,24 @@ export function OrderActions({
     }
   }
 
+  async function handleDelete() {
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc("delete_order", {
+        p_order_id: order.id,
+        p_reason: reason || null,
+      });
+      if (error) throw error;
+      toast(`Order ${order.order_number} deleted`, "success");
+      // The order no longer exists — leave the detail page.
+      router.replace("/orders");
+      router.refresh();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Delete failed", "error");
+      setBusy(false);
+    }
+  }
+
   const cancelled = order.status === "cancelled";
 
   return (
@@ -108,6 +126,9 @@ export function OrderActions({
             <Ban className="h-4 w-4" /> Cancel order
           </Button>
         )}
+        <Button variant="destructive" onClick={() => { setReason(""); setDialog("delete"); }}>
+          <Trash2 className="h-4 w-4" /> Delete
+        </Button>
       </div>
 
       {/* Record payment */}
@@ -224,6 +245,33 @@ export function OrderActions({
               }
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />} Cancel order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete (permanent) */}
+      <Dialog open={dialog === "delete"} onOpenChange={(o) => !o && setDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete this order permanently?</DialogTitle>
+            <DialogDescription>
+              This removes <span className="font-medium">{order.order_number}</span> and its items
+              {(order.amount_paid > 0 || order.refunded_amount > 0) && (
+                <>, including any recorded payments and refunds</>
+              )}
+              . This cannot be undone. Use <span className="font-medium">Cancel order</span> instead
+              if you want to keep it for history.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Reason (optional, kept in the audit log)</Label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. entered by mistake" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog(null)}>Keep order</Button>
+            <Button variant="destructive" disabled={busy} onClick={handleDelete}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />} Delete permanently
             </Button>
           </DialogFooter>
         </DialogContent>

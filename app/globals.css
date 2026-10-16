@@ -4,81 +4,85 @@
 
 @layer base {
   :root {
-    /* Light — warm off-white canvas, charcoal ink, muted-lime accent */
-    --background: 40 24% 98%;
-    --foreground: 24 12% 12%;
+    /* Brand theme — #FAF4DB cream canvas, #07689C blue accent, navy ink */
+    color-scheme: light;
 
-    --card: 0 0% 100%;
-    --card-foreground: 24 12% 12%;
+    --background: 48 76% 92%;          /* #FAF4DB cream */
+    --foreground: 201 45% 14%;         /* deep navy ink */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 24 12% 12%;
+    --card: 48 60% 97%;                /* lighter warm cream — lifts off canvas */
+    --card-foreground: 201 45% 14%;
 
-    --primary: 24 12% 12%;
-    --primary-foreground: 44 30% 97%;
+    --popover: 48 60% 97%;
+    --popover-foreground: 201 45% 14%;
 
-    --secondary: 40 14% 94%;
-    --secondary-foreground: 24 12% 18%;
+    --primary: 201 60% 20%;            /* dark brand-blue — default buttons, active chips */
+    --primary-foreground: 48 76% 95%;
 
-    --muted: 40 12% 94%;
-    --muted-foreground: 24 6% 44%;
+    --secondary: 47 42% 85%;           /* warm sand — hover / secondary surfaces */
+    --secondary-foreground: 201 45% 18%;
 
-    --accent: 74 48% 44%;
-    --accent-foreground: 24 24% 10%;
+    --muted: 47 38% 87%;
+    --muted-foreground: 201 16% 38%;
 
-    --destructive: 0 72% 48%;
+    --accent: 201 91% 32%;             /* #07689C — CTAs, links, focus */
+    --accent-foreground: 48 76% 96%;
+
+    --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 36 14% 88%;
-    --input: 36 14% 86%;
-    --ring: 74 48% 44%;
+    --border: 46 32% 80%;
+    --input: 46 32% 78%;
+    --ring: 201 91% 32%;
 
-    --chart-1: 74 48% 44%;
-    --chart-2: 38 92% 50%;
-    --chart-3: 173 58% 39%;
-    --chart-4: 222 12% 46%;
-    --chart-5: 262 48% 58%;
-    --chart-6: 12 72% 60%;
+    --chart-1: 201 91% 34%;   /* brand blue */
+    --chart-2: 187 68% 38%;   /* teal */
+    --chart-3: 38 88% 50%;    /* amber / gold */
+    --chart-4: 214 45% 46%;   /* slate blue */
+    --chart-5: 13 72% 55%;    /* terracotta */
+    --chart-6: 158 52% 38%;   /* green */
 
     --radius: 0.75rem;
   }
 
   .dark {
-    /* Dark charcoal */
-    --background: 24 10% 8%;
-    --foreground: 44 22% 92%;
+    /* Deep-navy dark variant of the brand palette */
+    color-scheme: dark;
 
-    --card: 24 9% 11%;
-    --card-foreground: 44 22% 92%;
+    --background: 202 45% 9%;          /* deep navy */
+    --foreground: 48 40% 90%;          /* warm cream text */
 
-    --popover: 24 9% 11%;
-    --popover-foreground: 44 22% 92%;
+    --card: 202 40% 12%;
+    --card-foreground: 48 40% 90%;
 
-    --primary: 44 26% 94%;
-    --primary-foreground: 24 12% 10%;
+    --popover: 202 40% 12%;
+    --popover-foreground: 48 40% 90%;
 
-    --secondary: 24 7% 16%;
-    --secondary-foreground: 44 22% 92%;
+    --primary: 48 55% 88%;             /* warm cream — default buttons on dark */
+    --primary-foreground: 202 45% 12%;
 
-    --muted: 24 7% 16%;
-    --muted-foreground: 40 8% 62%;
+    --secondary: 202 30% 18%;
+    --secondary-foreground: 48 40% 90%;
 
-    --accent: 74 52% 50%;
-    --accent-foreground: 24 24% 10%;
+    --muted: 202 28% 18%;
+    --muted-foreground: 202 14% 64%;
 
-    --destructive: 0 62% 46%;
+    --accent: 200 85% 46%;             /* brighter brand blue for dark bg */
+    --accent-foreground: 202 50% 8%;
+
+    --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 24 6% 20%;
-    --input: 24 6% 22%;
-    --ring: 74 52% 50%;
+    --border: 202 24% 22%;
+    --input: 202 24% 24%;
+    --ring: 200 85% 46%;
 
-    --chart-1: 74 52% 52%;
-    --chart-2: 38 92% 56%;
-    --chart-3: 173 52% 48%;
-    --chart-4: 220 12% 62%;
-    --chart-5: 262 56% 68%;
-    --chart-6: 12 76% 66%;
+    --chart-1: 200 85% 52%;
+    --chart-2: 187 65% 50%;
+    --chart-3: 38 90% 56%;
+    --chart-4: 214 50% 62%;
+    --chart-5: 13 76% 62%;
+    --chart-6: 158 52% 50%;
   }
 
   * {

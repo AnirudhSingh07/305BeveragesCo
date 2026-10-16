@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { InstallPwaButton } from "@/components/install-pwa-button";
 import {
   LayoutDashboard,
   Plus,
@@ -82,6 +83,8 @@ export function AppSidebar({ businessName }: { businessName: string }) {
           );
         })}
       </nav>
+
+      <InstallPwaButton />
 
       <button
         onClick={signOut}

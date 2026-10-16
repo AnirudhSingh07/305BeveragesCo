@@ -8,6 +8,7 @@ import { formatINR } from "@/lib/money";
 import { formatIst } from "@/lib/datetime";
 import { PageHeader } from "@/components/page-header";
 import { OrdersFilters } from "@/components/orders-filters";
+import { DeleteOrderButton } from "@/components/delete-order-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -82,6 +83,7 @@ export default async function OrdersPage({
                   <TableHead className="text-right">Net total</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-10 text-right sr-only">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,6 +110,13 @@ export default async function OrdersPage({
                       ) : (
                         <Badge variant={statusBadge(o.payment_status) as any}>{o.payment_status}</Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DeleteOrderButton
+                        orderId={o.id}
+                        orderNumber={o.order_number}
+                        hasMoney={o.amount_paid > 0 || o.refunded_amount > 0}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
