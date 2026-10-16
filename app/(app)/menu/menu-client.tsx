@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { errorMessage } from "@/lib/errors";
 import { Plus, Search, Pencil, Trash2, Loader2, Download, Tags } from "lucide-react";
 
 interface Category { id: string; name: string; subgroup: string | null; sort_order: number }
@@ -44,7 +45,15 @@ interface Product {
 const r2p = (v: string) => Math.round((parseFloat(v) || 0) * 100);
 const p2r = (v: number | null) => (v == null ? "" : (v / 100).toString());
 
-export function MenuClient({ categories, products }: { categories: Category[]; products: Product[] }) {
+export function MenuClient({
+  categories,
+  products,
+  businessId,
+}: {
+  categories: Category[];
+  products: Product[];
+  businessId: string;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const supabase = useMemo(() => createClient(), []);
@@ -52,6 +61,7 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("name");
   const [busy, setBusy] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [adding, setAdding] = useState(false);
@@ -98,7 +108,7 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
         if (error) throw error;
         toast("Product updated", "success");
       } else {
-        const { error } = await supabase.from("products").insert(payload);
+        const { error } = await supabase.from("products").insert({ ...payload, business_id: businessId });
         if (error) throw error;
         toast("Product added", "success");
       }
@@ -106,17 +116,22 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
       setAdding(false);
       router.refresh();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Save failed", "error");
+      toast(errorMessage(err, "Save failed"), "error");
     } finally {
       setBusy(false);
     }
   }
 
   async function toggleAvailable(p: Product) {
-    const { error } = await supabase.from("products").update({ is_available: !p.is_available }).eq("id", p.id);
-    if (error) return toast(error.message, "error");
-    toast(p.is_available ? "Marked unavailable" : "Marked available", "success");
-    router.refresh();
+    setTogglingId(p.id);
+    try {
+      const { error } = await supabase.from("products").update({ is_available: !p.is_available }).eq("id", p.id);
+      if (error) return toast(error.message, "error");
+      toast(p.is_available ? "Marked unavailable" : "Marked available", "success");
+      router.refresh();
+    } finally {
+      setTogglingId(null);
+    }
   }
 
   async function deleteProduct() {
@@ -130,7 +145,7 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
       setConfirmDelete(null);
       router.refresh();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Delete failed", "error");
+      toast(errorMessage(err, "Delete failed"), "error");
     } finally {
       setBusy(false);
     }
@@ -146,7 +161,9 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
         if (error) throw error;
       } else {
         const nextSort = Math.max(0, ...categories.map((c) => c.sort_order)) + 1;
-        const { error } = await supabase.from("categories").insert({ ...payload, sort_order: nextSort });
+        const { error } = await supabase
+          .from("categories")
+          .insert({ ...payload, sort_order: nextSort, business_id: businessId });
         if (error) throw error;
       }
       toast("Category saved", "success");
@@ -155,7 +172,7 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
       setCatForm({ name: "", subgroup: "" });
       router.refresh();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Save failed", "error");
+      toast(errorMessage(err, "Save failed"), "error");
     } finally {
       setBusy(false);
     }
@@ -216,10 +233,16 @@ export function MenuClient({ categories, products }: { categories: Category[]; p
                   </TableCell>
                   <TableCell className="text-right tnum text-muted-foreground">{p.popularity}</TableCell>
                   <TableCell>
-                    <button onClick={() => toggleAvailable(p)}>
-                      <Badge variant={p.is_available ? "success" : "outline"}>
-                        {p.is_available ? "Available" : "Unavailable"}
-                      </Badge>
+                    <button onClick={() => toggleAvailable(p)} disabled={togglingId === p.id} className="disabled:opacity-60">
+                      {togglingId === p.id ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating…
+                        </span>
+                      ) : (
+                        <Badge variant={p.is_available ? "success" : "outline"}>
+                          {p.is_available ? "Available" : "Unavailable"}
+                        </Badge>
+                      )}
                     </button>
                   </TableCell>
                   <TableCell className="text-right">

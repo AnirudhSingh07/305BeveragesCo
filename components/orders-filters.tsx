@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { DateRangePicker } from "@/components/date-range-picker";
@@ -10,24 +11,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/loader";
+import { cn } from "@/lib/utils";
 import { Search } from "lucide-react";
 
 export function OrdersFilters({ categories }: { categories: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   function set(key: string, value: string) {
     const sp = new URLSearchParams(params.toString());
     if (value && value !== "all") sp.set(key, value);
     else sp.delete(key);
-    router.push(`${pathname}?${sp.toString()}`);
+    startTransition(() => router.push(`${pathname}?${sp.toString()}`));
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
+    <div className={cn("mb-4 flex flex-wrap items-center gap-2", isPending && "opacity-60")}>
       <div className="relative min-w-[220px] flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {isPending ? (
+          <Spinner className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        ) : (
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        )}
         <Input
           defaultValue={params.get("q") ?? ""}
           placeholder="Search order no. or product…"

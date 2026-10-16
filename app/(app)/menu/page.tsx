@@ -5,11 +5,12 @@ export const dynamic = "force-dynamic";
 
 export default async function MenuPage() {
   const supabase = createClient();
-  const [{ data: categories }, { data: products }, { data: items }] =
+  const [{ data: categories }, { data: products }, { data: items }, { data: biz }] =
     await Promise.all([
       supabase.from("categories").select("*").order("sort_order"),
       supabase.from("products").select("*").order("name"),
       supabase.from("order_items").select("product_id, quantity"),
+      supabase.from("businesses").select("id").limit(1).maybeSingle(),
     ]);
 
   const popularity = new Map<string, number>();
@@ -27,6 +28,7 @@ export default async function MenuPage() {
     <MenuClient
       categories={(categories ?? []) as any}
       products={productsWithPop as any}
+      businessId={biz?.id ?? ""}
     />
   );
 }

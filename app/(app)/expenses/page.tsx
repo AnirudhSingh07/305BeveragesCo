@@ -22,10 +22,11 @@ export default async function ExpensesPage({
   const { range } = rangeFromParams(searchParams);
   const todayRange = resolveRange("today");
 
-  const [periodExpenses, todayExpenses, { data: cats }] = await Promise.all([
+  const [periodExpenses, todayExpenses, { data: cats }, { data: biz }] = await Promise.all([
     getExpensesInRange(supabase, range),
     getExpensesInRange(supabase, todayRange),
     supabase.from("expense_categories").select("*").order("name"),
+    supabase.from("businesses").select("id").limit(1).maybeSingle(),
   ]);
 
   const periodTotal = periodExpenses.reduce((a, e) => a + e.amount, 0);
@@ -64,6 +65,7 @@ export default async function ExpensesPage({
         expenses={periodExpenses as any}
         categories={(cats ?? []) as any}
         exportQs={qs}
+        businessId={biz?.id ?? ""}
       />
     </div>
   );

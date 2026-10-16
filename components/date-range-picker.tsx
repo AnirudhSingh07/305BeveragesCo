@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/loader";
+import { cn } from "@/lib/utils";
 import type { DateRangePreset } from "@/lib/datetime";
 
 const PRESETS: { value: DateRangePreset; label: string }[] = [
@@ -24,6 +27,7 @@ export function DateRangePicker() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const preset = (params.get("range") as DateRangePreset) || "today";
   const from = params.get("from") || "";
@@ -35,11 +39,11 @@ export function DateRangePicker() {
       if (v) sp.set(k, v);
       else sp.delete(k);
     });
-    router.push(`${pathname}?${sp.toString()}`);
+    startTransition(() => router.push(`${pathname}?${sp.toString()}`));
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-wrap items-center gap-2", isPending && "opacity-60")}>
       <Select value={preset} onValueChange={(v) => update({ range: v })}>
         <SelectTrigger className="w-[150px]">
           <SelectValue />
@@ -69,6 +73,7 @@ export function DateRangePicker() {
           />
         </>
       )}
+      {isPending && <Spinner className="text-muted-foreground" />}
     </div>
   );
 }

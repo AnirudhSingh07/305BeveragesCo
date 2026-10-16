@@ -18,6 +18,7 @@ import {
   Settings,
   GlassWater,
   LogOut,
+  Loader2,
   Menu as MenuIcon,
   X,
 } from "lucide-react";
@@ -36,12 +37,18 @@ export function AppSidebar({ businessName }: { businessName: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    setSigningOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    } catch {
+      setSigningOut(false);
+    }
   }
 
   const nav = (
@@ -88,9 +95,15 @@ export function AppSidebar({ businessName }: { businessName: string }) {
 
       <button
         onClick={signOut}
-        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground"
+        disabled={signingOut}
+        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground disabled:opacity-60"
       >
-        <LogOut className="h-[18px] w-[18px]" /> Sign out
+        {signingOut ? (
+          <Loader2 className="h-[18px] w-[18px] animate-spin" />
+        ) : (
+          <LogOut className="h-[18px] w-[18px]" />
+        )}
+        {signingOut ? "Signing out…" : "Sign out"}
       </button>
     </div>
   );

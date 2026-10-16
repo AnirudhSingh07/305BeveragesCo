@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/loader";
 import { useToast } from "@/components/ui/toast";
 import { CalendarCheck, Printer, Loader2, Download } from "lucide-react";
 
@@ -23,12 +24,13 @@ export function ClosingActions({
   const { toast } = useToast();
   const supabase = useMemo(() => createClient(), []);
   const [busy, setBusy] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   function setDate(v: string) {
     const sp = new URLSearchParams(params.toString());
     if (v) sp.set("date", v);
     else sp.delete("date");
-    router.push(`${pathname}?${sp.toString()}`);
+    startTransition(() => router.push(`${pathname}?${sp.toString()}`));
   }
 
   async function generate() {
@@ -59,6 +61,7 @@ export function ClosingActions({
         className="w-[160px]"
         onChange={(e) => setDate(e.target.value)}
       />
+      {isPending && <Spinner className="text-muted-foreground" />}
       <a href={`/api/export/daily-summary?range=custom&from=${date}&to=${date}`}>
         <Button variant="outline"><Download className="h-4 w-4" /> CSV</Button>
       </a>

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { errorMessage } from "@/lib/errors";
 import { Plus, Search, Pencil, Trash2, Loader2, Download } from "lucide-react";
 
 interface Cat { id: string; name: string }
@@ -56,10 +57,12 @@ export function ExpensesClient({
   expenses,
   categories,
   exportQs,
+  businessId,
 }: {
   expenses: ExpenseRow[];
   categories: Cat[];
   exportQs: string;
+  businessId: string;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -125,14 +128,14 @@ export function ExpensesClient({
         if (error) throw error;
         toast("Expense updated", "success");
       } else {
-        const { error } = await supabase.from("expenses").insert(payload);
+        const { error } = await supabase.from("expenses").insert({ ...payload, business_id: businessId });
         if (error) throw error;
         toast("Expense recorded", "success");
       }
       setDialogOpen(false);
       router.refresh();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Save failed", "error");
+      toast(errorMessage(err, "Save failed"), "error");
     } finally {
       setBusy(false);
     }
@@ -152,7 +155,7 @@ export function ExpensesClient({
       setConfirmDelete(null);
       router.refresh();
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Delete failed", "error");
+      toast(errorMessage(err, "Delete failed"), "error");
     } finally {
       setBusy(false);
     }
