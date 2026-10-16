@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light — warm off-white canvas, charcoal ink, muted-lime accent */
+    --background: 40 24% 98%;
+    --foreground: 24 12% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 12% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 12% 12%;
+
+    --primary: 24 12% 12%;
+    --primary-foreground: 44 30% 97%;
+
+    --secondary: 40 14% 94%;
+    --secondary-foreground: 24 12% 18%;
+
+    --muted: 40 12% 94%;
+    --muted-foreground: 24 6% 44%;
+
+    --accent: 74 48% 44%;
+    --accent-foreground: 24 24% 10%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 36 14% 88%;
+    --input: 36 14% 86%;
+    --ring: 74 48% 44%;
+
+    --chart-1: 74 48% 44%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 222 12% 46%;
+    --chart-5: 262 48% 58%;
+    --chart-6: 12 72% 60%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Dark charcoal */
+    --background: 24 10% 8%;
+    --foreground: 44 22% 92%;
+
+    --card: 24 9% 11%;
+    --card-foreground: 44 22% 92%;
+
+    --popover: 24 9% 11%;
+    --popover-foreground: 44 22% 92%;
+
+    --primary: 44 26% 94%;
+    --primary-foreground: 24 12% 10%;
+
+    --secondary: 24 7% 16%;
+    --secondary-foreground: 44 22% 92%;
+
+    --muted: 24 7% 16%;
+    --muted-foreground: 40 8% 62%;
+
+    --accent: 74 52% 50%;
+    --accent-foreground: 24 24% 10%;
+
+    --destructive: 0 62% 46%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 6% 20%;
+    --input: 24 6% 22%;
+    --ring: 74 52% 50%;
+
+    --chart-1: 74 52% 52%;
+    --chart-2: 38 92% 56%;
+    --chart-3: 173 52% 48%;
+    --chart-4: 220 12% 62%;
+    --chart-5: 262 56% 68%;
+    --chart-6: 12 76% 66%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1, "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Tabular numerals for all monetary figures */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Hide number input spinners for cleaner money fields */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Print: show only the receipt / report area */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
