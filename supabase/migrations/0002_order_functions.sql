@@ -28,7 +28,9 @@ declare
   v_existing  orders;
   v_order     orders;
   v_order_id  uuid := gen_random_uuid();
-  v_biz_date  date := (now() at time zone 'Asia/Kolkata')::date;
+  -- Business day starts at 05:00 IST (see DAY_START_HOUR in lib/datetime.ts):
+  -- orders between midnight and 05:00 IST belong to the previous trading day.
+  v_biz_date  date := ((now() at time zone 'Asia/Kolkata') - interval '5 hours')::date;
   v_seq       int;
   v_number    text;
   v_item      record;

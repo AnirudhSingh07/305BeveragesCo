@@ -1,11 +1,24 @@
 /**
  * Date/time utilities — all business dates are resolved in the Asia/Kolkata
  * timezone (IST, UTC+05:30), even when the server runs in UTC. A "business
- * date" is the calendar date in IST; the day boundary is midnight IST.
+ * date" is the trading day in IST; the day boundary is DAY_START_HOUR IST
+ * (05:00), so anything between midnight and 05:00 IST still counts toward the
+ * previous day's sales, closing and reports.
  */
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 
 export const BUSINESS_TZ = "Asia/Kolkata";
+
+/**
+ * Hour (in IST) at which a new business day begins. The trading day runs from
+ * 05:00 IST to 05:00 IST the next calendar day. Change this single constant to
+ * move the boundary. NOTE: the order-number/counter logic in the Postgres
+ * `create_order` function mirrors this value — keep them in sync.
+ */
+export const DAY_START_HOUR = 5;
+
+/** Zero-padded "HH:00:00" wall-clock string for the start of a business day. */
+const DAY_START_TIME = `${String(DAY_START_HOUR).padStart(2, "0")}:00:00`;
 
 export type DateRangePreset =
   | "today"
@@ -22,18 +35,24 @@ export interface UtcRange {
   endUtc: string;
 }
 
-/** The business date (YYYY-MM-DD in IST) for a given instant (default: now). */
+/**
+ * The business date (YYYY-MM-DD in IST) for a given instant (default: now).
+ * The day begins at DAY_START_HOUR IST, so we shift the instant back by that
+ * many hours before reading off the calendar date: an instant at 02:00 IST is
+ * attributed to the previous trading day, while 05:00 IST starts the new one.
+ */
 export function businessDate(instant: Date = new Date()): string {
-  return formatInTimeZone(instant, BUSINESS_TZ, "yyyy-MM-dd");
+  const shifted = new Date(instant.getTime() - DAY_START_HOUR * 60 * 60 * 1000);
+  return formatInTimeZone(shifted, BUSINESS_TZ, "yyyy-MM-dd");
 }
 
 /**
- * Given an IST calendar date string (YYYY-MM-DD), return the UTC instant of
- * its midnight (start of that business day in IST).
+ * Given an IST calendar date string (YYYY-MM-DD), return the UTC instant of the
+ * start of that business day in IST (DAY_START_HOUR, i.e. 05:00).
  */
 export function istDayStartUtc(dateStr: string): Date {
-  // Interpret "<date> 00:00:00" as a wall-clock time in IST, convert to UTC.
-  return fromZonedTime(`${dateStr} 00:00:00`, BUSINESS_TZ);
+  // Interpret "<date> 05:00:00" as a wall-clock time in IST, convert to UTC.
+  return fromZonedTime(`${dateStr} ${DAY_START_TIME}`, BUSINESS_TZ);
 }
 
 /** The UTC instant for the END (exclusive) of an IST business day. */

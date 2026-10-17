@@ -7,12 +7,13 @@ import { MENU, TOTAL_PRODUCTS, DEFAULT_EXPENSE_CATEGORIES } from "@/lib/menu-dat
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-describe("9. expenses included in the selected date range (IST)", () => {
-  const now = new Date("2026-10-17T05:00:00Z"); // 2026-10-17 IST
+describe("9. expenses included in the selected date range (IST, 05:00 day start)", () => {
+  const now = new Date("2026-10-17T05:00:00Z"); // 10:30 IST on the 17th
   const expenses = [
     { id: "a", incurred_at: "2026-10-17T06:00:00Z" }, // 11:30 IST 17th — in
-    { id: "b", incurred_at: "2026-10-16T19:00:00Z" }, // 00:30 IST 17th — in
-    { id: "c", incurred_at: "2026-10-16T17:00:00Z" }, // 22:30 IST 16th — out
+    { id: "b", incurred_at: "2026-10-17T00:00:00Z" }, // 05:30 IST 17th — in
+    { id: "c", incurred_at: "2026-10-16T19:00:00Z" }, // 00:30 IST 17th — before 05:00, prev day — out
+    { id: "d", incurred_at: "2026-10-16T17:00:00Z" }, // 22:30 IST 16th — out
   ];
   it("keeps only records within today's IST window", () => {
     const range = resolveRange("today", undefined, undefined, now);
