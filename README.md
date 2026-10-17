@@ -82,6 +82,7 @@ The schema, RLS policies, transactional functions, and idempotent seed live in
 | `0002_order_functions.sql` | `create_order`, `record_payment`, `refund_order`, `cancel_order` |
 | `0003_closing.sql` | `record_daily_closing` |
 | `0004_delete_order.sql` | `delete_order` (permanent delete of a mistaken order, audit-logged) |
+| `0005_split_payment.sql` | Split payments: allow `payment_method = 'split'`; `create_order` records cash + UPI rows |
 
 **Apply them (easiest — SQL editor):**
 

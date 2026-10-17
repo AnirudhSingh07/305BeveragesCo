@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { computeCartTotals } from "@/lib/finance";
 import { formatINR } from "@/lib/money";
-import type { CartLine, DiscountType, PaymentMethod } from "@/lib/types";
+import type { CartLine, DiscountType, OrderPaymentMethod } from "@/lib/types";
 import { newClientToken, createSubmissionGuard } from "@/lib/submission-guard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -49,7 +49,16 @@ interface Product {
   is_available: boolean;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = ["cash", "upi", "card", "other"];
+const PAYMENT_METHODS: OrderPaymentMethod[] = [
+  "cash",
+  "upi",
+  "card",
+  "other",
+  "split",
+];
+
+const methodLabel = (m: OrderPaymentMethod) =>
+  m === "split" ? "Cash + Online" : m.toUpperCase();
 
 export function PosClient({
   categories,
@@ -74,9 +83,10 @@ export function PosClient({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [discountType, setDiscountType] = useState<DiscountType>("none");
   const [discountInput, setDiscountInput] = useState(""); // rupees (flat) or percent
-  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [method, setMethod] = useState<OrderPaymentMethod>("cash");
   const [paidFull, setPaidFull] = useState(true);
   const [amountPaidInput, setAmountPaidInput] = useState(""); // rupees
+  const [cashSplitInput, setCashSplitInput] = useState(""); // rupees (cash part of a split)
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -95,9 +105,23 @@ export function PosClient({
     discountType === "percent" ? discountPercent : discountValuePaise
   );
 
-  const amountPaidPaise = paidFull
+  // Split payment: part cash, the rest online (UPI). A split order is always
+  // paid in full, so cash + online = total. The cash part is clamped to [0, total]
+  // and the online part is whatever remains.
+  const isSplit = method === "split";
+  const cashSplitPaise = isSplit
+    ? Math.min(
+        Math.max(Math.round((parseFloat(cashSplitInput) || 0) * 100), 0),
+        totals.total
+      )
+    : 0;
+  const onlineSplitPaise = isSplit ? Math.max(totals.total - cashSplitPaise, 0) : 0;
+
+  const amountPaidPaise = isSplit
     ? totals.total
-    : Math.round((parseFloat(amountPaidInput) || 0) * 100);
+    : paidFull
+      ? totals.total
+      : Math.round((parseFloat(amountPaidInput) || 0) * 100);
 
   const filtered = products.filter((p) => {
     if (search.trim()) {
@@ -148,6 +172,7 @@ export function PosClient({
     setMethod("cash");
     setPaidFull(true);
     setAmountPaidInput("");
+    setCashSplitInput("");
     setCustName("");
     setCustPhone("");
     setNotes("");
@@ -169,7 +194,9 @@ export function PosClient({
         p_discount_value:
           discountType === "percent" ? discountPercent : discountValuePaise,
         p_payment_method: method,
-        p_amount_paid: amountPaidPaise,
+        // For a split, p_amount_paid carries the CASH part; the server records
+        // the rest as UPI and marks the order fully paid.
+        p_amount_paid: isSplit ? cashSplitPaise : amountPaidPaise,
         p_customer_name: custName.trim() || null,
         p_customer_phone: custPhone.trim() || null,
         p_notes: notes.trim() || null,
@@ -187,6 +214,16 @@ export function PosClient({
         net_amount: Number(order.net_amount),
         amount_paid: Number(order.amount_paid),
         customer_name: order.customer_name,
+        payments: isSplit
+          ? [
+              ...(cashSplitPaise > 0
+                ? [{ method: "cash", amount: cashSplitPaise }]
+                : []),
+              ...(onlineSplitPaise > 0
+                ? [{ method: "upi", amount: onlineSplitPaise }]
+                : []),
+            ]
+          : undefined,
         items: cart.map((l) => ({
           product_name: l.name,
           quantity: l.quantity,
@@ -369,55 +406,78 @@ export function PosClient({
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="mb-1 block text-xs">Payment</Label>
-              <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
+              <Select value={method} onValueChange={(v) => setMethod(v as OrderPaymentMethod)}>
                 <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {PAYMENT_METHODS.map((m) => (
                     <SelectItem key={m} value={m} className="capitalize">
-                      {m.toUpperCase()}
+                      {methodLabel(m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="mb-1 block text-xs">Amount paid</Label>
-              {paidFull ? (
-                <Button
-                  variant="outline"
-                  className="h-9 w-full justify-between"
-                  onClick={() => {
-                    setPaidFull(false);
-                    setAmountPaidInput((totals.total / 100).toString());
-                  }}
-                >
-                  <span className="tnum">{formatINR(totals.total)}</span>
-                  <span className="text-xs text-muted-foreground">Full</span>
-                </Button>
-              ) : (
-                <div className="flex items-center gap-1">
+              {isSplit ? (
+                <>
+                  <Label className="mb-1 block text-xs">Cash part</Label>
                   <Input
                     type="number"
                     min={0}
-                    value={amountPaidInput}
-                    onChange={(e) => setAmountPaidInput(e.target.value)}
+                    max={totals.total / 100}
+                    placeholder="₹ cash"
+                    value={cashSplitInput}
+                    onChange={(e) => setCashSplitInput(e.target.value)}
                     className="h-9"
                   />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-9 w-9 shrink-0"
-                    onClick={() => setPaidFull(true)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                </>
+              ) : (
+                <>
+                  <Label className="mb-1 block text-xs">Amount paid</Label>
+                  {paidFull ? (
+                    <Button
+                      variant="outline"
+                      className="h-9 w-full justify-between"
+                      onClick={() => {
+                        setPaidFull(false);
+                        setAmountPaidInput((totals.total / 100).toString());
+                      }}
+                    >
+                      <span className="tnum">{formatINR(totals.total)}</span>
+                      <span className="text-xs text-muted-foreground">Full</span>
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={amountPaidInput}
+                        onChange={(e) => setAmountPaidInput(e.target.value)}
+                        className="h-9"
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 shrink-0"
+                        onClick={() => setPaidFull(true)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
-          {!paidFull && amountPaidPaise < totals.total && (
+          {isSplit && (
+            <div className="flex items-center justify-between rounded-md bg-secondary px-2 py-1.5 text-xs">
+              <span className="text-muted-foreground">Online (UPI)</span>
+              <span className="tnum font-medium">{formatINR(onlineSplitPaise)}</span>
+            </div>
+          )}
+          {!isSplit && !paidFull && amountPaidPaise < totals.total && (
             <div className="rounded-md bg-amber-500/10 px-2 py-1 text-xs text-amber-600 dark:text-amber-400">
               Balance due: {formatINR(Math.max(totals.total - amountPaidPaise, 0))}
             </div>
@@ -504,19 +564,38 @@ export function PosClient({
               <span>Total</span>
               <span className="tnum">{formatINR(totals.total)}</span>
             </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Payment</span>
-              <span className="uppercase">{method}</span>
-            </div>
-            <div className="flex justify-between text-muted-foreground">
-              <span>Amount paid</span>
-              <span className="tnum">{formatINR(amountPaidPaise)}</span>
-            </div>
-            {amountPaidPaise < totals.total && (
-              <div className="flex justify-between font-medium text-amber-600 dark:text-amber-400">
-                <span>Balance due</span>
-                <span className="tnum">{formatINR(totals.total - amountPaidPaise)}</span>
-              </div>
+            {isSplit ? (
+              <>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Payment</span>
+                  <span>Cash + Online</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Cash</span>
+                  <span className="tnum">{formatINR(cashSplitPaise)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Online (UPI)</span>
+                  <span className="tnum">{formatINR(onlineSplitPaise)}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Payment</span>
+                  <span className="uppercase">{method}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Amount paid</span>
+                  <span className="tnum">{formatINR(amountPaidPaise)}</span>
+                </div>
+                {amountPaidPaise < totals.total && (
+                  <div className="flex justify-between font-medium text-amber-600 dark:text-amber-400">
+                    <span>Balance due</span>
+                    <span className="tnum">{formatINR(totals.total - amountPaidPaise)}</span>
+                  </div>
+                )}
+              </>
             )}
             {custName.trim() && (
               <div className="flex justify-between text-muted-foreground">

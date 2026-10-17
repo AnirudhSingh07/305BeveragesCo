@@ -137,13 +137,43 @@ export function totalCashCollected(orders: OrderRecord[]): Paise {
   return sumPaise(orders.map(orderCashCollected));
 }
 
-/** Cash collected broken down by payment method (excludes cancelled). */
+/**
+ * Cash collected broken down by payment method (excludes cancelled).
+ *
+ * When an order has individual `payments` rows (e.g. a split order paid partly
+ * in cash and partly by UPI) the collected amount is distributed across those
+ * methods. Any refund is netted out proportionally so each per-method bucket
+ * still sums exactly to the order's net cash collected. Orders without payment
+ * rows fall back to attributing everything to their single `payment_method`.
+ */
 export function cashByMethod(orders: OrderRecord[]): Record<string, Paise> {
   const out: Record<string, Paise> = { cash: 0, upi: 0, card: 0, other: 0 };
+  const add = (method: string, amount: Paise) => {
+    out[method] = (out[method] ?? 0) + amount;
+  };
   for (const o of orders) {
     if (!isRevenueOrder(o)) continue;
-    out[o.payment_method] =
-      (out[o.payment_method] ?? 0) + orderCashCollected(o);
+    const collected = orderCashCollected(o); // amount_paid − refunded, floored at 0
+    if (collected <= 0) continue;
+
+    const rows = o.payments ?? [];
+    const paidGross = rows.reduce((a, p) => a + p.amount, 0);
+    if (rows.length === 0 || paidGross <= 0) {
+      add(o.payment_method, collected);
+      continue;
+    }
+
+    // Distribute `collected` across methods in proportion to each payment,
+    // giving the rounding remainder to the last row so the parts sum exactly.
+    let distributed = 0;
+    rows.forEach((p, i) => {
+      const share =
+        i === rows.length - 1
+          ? collected - distributed
+          : Math.round((p.amount / paidGross) * collected);
+      distributed += share;
+      add(p.method, share);
+    });
   }
   return out;
 }

@@ -71,6 +71,13 @@ function toOrderRow(o: any): OrderRow {
       unit_cost: it.unit_cost,
     })),
     itemsDetailed,
+    // Per-method payment breakdown, used by reporting to split collected cash
+    // across methods (e.g. for split orders). Absent on queries that don't join
+    // payments, in which case reporting falls back to `payment_method`.
+    payments: (o.payments ?? []).map((p: any) => ({
+      method: p.method,
+      amount: n(p.amount),
+    })),
   };
 }
 
@@ -81,7 +88,7 @@ export async function getOrdersInRange(
 ): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from("orders")
-    .select("*, order_items(*)")
+    .select("*, order_items(*), payments(method, amount)")
     .gte("created_at", range.startUtc)
     .lt("created_at", range.endUtc)
     .order("created_at", { ascending: false });

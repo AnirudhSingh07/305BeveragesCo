@@ -13,6 +13,9 @@ export interface ReceiptData {
   net_amount: number;
   amount_paid: number;
   refunded_amount?: number;
+  /** Per-method breakdown; when present (e.g. a split order) it's shown instead
+   *  of a single "Paid (METHOD)" line. */
+  payments?: { method: string; amount: number }[];
   customer_name?: string | null;
   items: {
     product_name: string;
@@ -100,10 +103,19 @@ export function Receipt({
         <span>{formatINR(data.net_amount)}</span>
       </div>
       <div className="my-2 border-t border-dashed border-black" />
-      <div className="flex justify-between">
-        <span>Paid ({data.payment_method.toUpperCase()})</span>
-        <span>{formatINR(data.amount_paid)}</span>
-      </div>
+      {data.payments && data.payments.length > 0 ? (
+        data.payments.map((p, i) => (
+          <div key={i} className="flex justify-between">
+            <span>Paid ({p.method.toUpperCase()})</span>
+            <span>{formatINR(p.amount)}</span>
+          </div>
+        ))
+      ) : (
+        <div className="flex justify-between">
+          <span>Paid ({data.payment_method.toUpperCase()})</span>
+          <span>{formatINR(data.amount_paid)}</span>
+        </div>
+      )}
       {outstanding > 0 && (
         <div className="flex justify-between font-bold">
           <span>Balance Due</span>

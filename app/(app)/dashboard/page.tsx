@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { rangeFromParams } from "@/lib/range-params";
 import { getOrdersInRange, getExpensesInRange } from "@/lib/queries";
-import { summarizeOrders, operatingProfit } from "@/lib/finance";
+import { summarizeOrders, operatingProfit, cashByMethod } from "@/lib/finance";
 import {
   dailySeries,
   salesByCategory,
@@ -44,6 +44,9 @@ import {
   PiggyBank,
   Clock,
   Plus,
+  Banknote,
+  Smartphone,
+  Coins,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +69,11 @@ export default async function DashboardPage({
   const summary = summarizeOrders(orders);
   const expenseTotal = expenses.reduce((a, e) => a + e.amount, 0);
   const opProfit = operatingProfit(summary, expenseTotal);
+
+  // Money actually collected, broken down by method (splits counted correctly).
+  const collected = cashByMethod(orders);
+  const totalCollected =
+    collected.cash + collected.upi + collected.card + collected.other;
 
   const series = dailySeries(orders, expenses, range);
   const catSales = salesByCategory(orders);
@@ -122,6 +130,28 @@ export default async function DashboardPage({
               hint={summary.cogsIncomplete ? "COGS incomplete — estimate" : "Net − COGS − expenses"}
             />
             <KpiCard label="Outstanding" value={formatINR(summary.outstanding)} tone="destructive" icon={Clock} />
+          </div>
+
+          {/* Money received, by method */}
+          <div>
+            <h2 className="mb-2 text-sm font-medium text-muted-foreground">
+              Money received
+            </h2>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <KpiCard label="Cash" value={formatINR(collected.cash)} icon={Banknote} />
+              <KpiCard label="UPI" value={formatINR(collected.upi)} icon={Smartphone} />
+              <KpiCard
+                label="Total collected"
+                value={formatINR(totalCollected)}
+                tone="accent"
+                icon={Coins}
+                hint={
+                  collected.card + collected.other > 0
+                    ? `Incl. ${formatINR(collected.card + collected.other)} card/other`
+                    : "Cash + UPI"
+                }
+              />
+            </div>
           </div>
 
           {summary.cogsIncomplete && (

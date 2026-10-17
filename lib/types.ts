@@ -3,8 +3,21 @@ import type { Paise } from "./money";
 
 export type OrderStatus = "completed" | "cancelled";
 export type PaymentStatus = "paid" | "unpaid" | "partial";
+/** Method a single payment is made with. */
 export type PaymentMethod = "cash" | "upi" | "card" | "other";
+/**
+ * How an order was paid, as shown on the order. "split" means the order was
+ * settled with more than one method (e.g. part cash, part UPI); the individual
+ * amounts live in the `payments` rows.
+ */
+export type OrderPaymentMethod = PaymentMethod | "split";
 export type DiscountType = "none" | "flat" | "percent";
+
+/** One payment made against an order (a split order has several). */
+export interface PaymentRecord {
+  method: PaymentMethod;
+  amount: Paise;
+}
 
 export interface Category {
   id: string;
@@ -59,7 +72,7 @@ export interface OrderRecord {
   order_number: string;
   status: OrderStatus;
   payment_status: PaymentStatus;
-  payment_method: PaymentMethod;
+  payment_method: OrderPaymentMethod;
   /** Sum of line totals before discount, paise. */
   gross_amount: Paise;
   /** Discount applied to the order, paise. */
@@ -72,4 +85,10 @@ export interface OrderRecord {
   refunded_amount: Paise;
   created_at: string;
   items: OrderItemSnapshot[];
+  /**
+   * Individual payment rows, used to break collected cash down by method
+   * (e.g. for split orders). Optional: when absent, reporting attributes the
+   * whole collected amount to `payment_method`.
+   */
+  payments?: PaymentRecord[];
 }

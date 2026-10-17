@@ -135,4 +135,43 @@ describe("revenue & profit engine", () => {
     expect(byMethod.upi).toBe(10000);
     expect(byMethod.cash).toBe(3000);
   });
+
+  it("splits a mixed-payment order across cash and online in the breakdown", () => {
+    const orders = [
+      order({
+        net_amount: 10000,
+        amount_paid: 10000,
+        payment_method: "split",
+        payments: [
+          { method: "cash", amount: 3000 },
+          { method: "upi", amount: 7000 },
+        ],
+      }),
+    ];
+    expect(totalCashCollected(orders)).toBe(10000);
+    const byMethod = cashByMethod(orders);
+    expect(byMethod.cash).toBe(3000);
+    expect(byMethod.upi).toBe(7000);
+    expect(byMethod.card).toBe(0);
+  });
+
+  it("nets a refund out of a split order proportionally (parts still sum)", () => {
+    const orders = [
+      order({
+        net_amount: 10000,
+        amount_paid: 10000,
+        refunded_amount: 1000,
+        payment_method: "split",
+        payments: [
+          { method: "cash", amount: 4000 },
+          { method: "upi", amount: 6000 },
+        ],
+      }),
+    ];
+    const byMethod = cashByMethod(orders);
+    // collected = 10000 - 1000 = 9000, split 40/60 → 3600 / 5400
+    expect(byMethod.cash).toBe(3600);
+    expect(byMethod.upi).toBe(5400);
+    expect(byMethod.cash + byMethod.upi).toBe(9000);
+  });
 });

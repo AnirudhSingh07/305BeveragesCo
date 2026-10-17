@@ -58,6 +58,7 @@ export function OrdersFilters({ categories }: { categories: string[] }) {
           <SelectItem value="cash">Cash</SelectItem>
           <SelectItem value="upi">UPI</SelectItem>
           <SelectItem value="card">Card</SelectItem>
+          <SelectItem value="split">Cash + Online</SelectItem>
           <SelectItem value="other">Other</SelectItem>
         </SelectContent>
       </Select>

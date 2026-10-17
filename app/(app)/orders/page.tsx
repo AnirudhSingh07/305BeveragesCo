@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rangeFromParams } from "@/lib/range-params";
 import { getOrdersInRange } from "@/lib/queries";
 import { applyOrderFilters } from "@/lib/order-filter";
-import { summarizeOrders } from "@/lib/finance";
+import { summarizeOrders, cashByMethod } from "@/lib/finance";
 import { formatINR } from "@/lib/money";
 import { formatIst } from "@/lib/datetime";
 import { PageHeader } from "@/components/page-header";
@@ -40,6 +40,10 @@ export default async function OrdersPage({
   ]);
   const orders = applyOrderFilters(allOrders, searchParams);
   const summary = summarizeOrders(orders);
+  // Cash actually collected, broken down by method (splits counted correctly).
+  const collected = cashByMethod(orders);
+  const onlineCollected = collected.upi + collected.card + collected.other;
+  const totalCollected = collected.cash + onlineCollected;
 
   const qs = new URLSearchParams(
     Object.entries(searchParams).flatMap(([k, v]) =>
@@ -103,7 +107,28 @@ export default async function OrdersPage({
                     <TableCell className="text-right font-medium tnum">
                       {formatINR(o.net_amount)}
                     </TableCell>
-                    <TableCell className="uppercase text-muted-foreground">{o.payment_method}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {o.payment_method === "split" ? (
+                        (() => {
+                          const cash = (o.payments ?? [])
+                            .filter((p) => p.method === "cash")
+                            .reduce((a, p) => a + p.amount, 0);
+                          const online = (o.payments ?? [])
+                            .filter((p) => p.method !== "cash")
+                            .reduce((a, p) => a + p.amount, 0);
+                          return (
+                            <div>
+                              <div className="uppercase">Split</div>
+                              <div className="text-xs tnum">
+                                {formatINR(cash)} cash · {formatINR(online)} online
+                              </div>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <span className="uppercase">{o.payment_method}</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {o.status === "cancelled" ? (
                         <Badge variant="destructive">Cancelled</Badge>
@@ -122,6 +147,25 @@ export default async function OrdersPage({
                 ))}
               </TableBody>
             </Table>
+          )}
+          {orders.length > 0 && (
+            <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-1 border-t px-4 py-3 text-sm">
+              <span className="mr-auto font-medium text-muted-foreground">
+                Money received
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="text-muted-foreground">Cash</span>
+                <span className="font-semibold tnum">{formatINR(collected.cash)}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="text-muted-foreground">Online</span>
+                <span className="font-semibold tnum">{formatINR(onlineCollected)}</span>
+              </span>
+              <span className="flex items-center gap-2 border-l pl-4">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-semibold tnum">{formatINR(totalCollected)}</span>
+              </span>
+            </div>
           )}
         </CardContent>
       </Card>
